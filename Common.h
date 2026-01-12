@@ -96,7 +96,7 @@ typedef void (*voidFuncPtrParam)(void*);
 #endif
 
 /* TODO: request for removal */
-typedef bool      boolean;
+typedef bool boolean __attribute__((deprecated));
 typedef uint8_t   byte;
 typedef uint16_t  word;
 
