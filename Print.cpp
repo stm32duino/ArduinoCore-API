@@ -24,6 +24,14 @@
 
 #include "Print.h"
 
+#ifdef ARDUINO_ARCH_STM32
+#include <unistd.h>
+#include "uart.h"
+#if defined (VIRTIO_LOG)
+  #include "virtio_log.h"
+#endif
+#endif
+
 using namespace arduino;
 
 // Public Methods //////////////////////////////////////////////////////////////
@@ -130,6 +138,11 @@ size_t Print::print(unsigned long long n, int base)
   else return printULLNumber(n, base);
 }
 
+size_t Print::print(float n, int digits)
+{
+  return printFloat(n, digits);
+}
+
 size_t Print::print(double n, int digits)
 {
   return printFloat(n, digits);
@@ -222,6 +235,13 @@ size_t Print::println(unsigned long long num, int base)
   return n;
 }
 
+size_t Print::println(float num, int digits)
+{
+  size_t n = print(num, digits);
+  n += println();
+  return n;
+}
+
 size_t Print::println(double num, int digits)
 {
   size_t n = print(num, digits);
@@ -234,6 +254,60 @@ size_t Print::println(const Printable& x)
   size_t n = print(x);
   n += println();
   return n;
+}
+
+#ifdef ARDUINO_ARCH_STM32
+extern "C" {
+  __attribute__((weak))
+  int _write(int file, char *ptr, int len)
+  {
+    switch (file) {
+      case STDOUT_FILENO:
+      case STDERR_FILENO:
+        /* Used for core_debug() */
+#if defined (VIRTIO_LOG)
+        virtio_log((uint8_t *)ptr, (uint32_t)len);
+#elif defined(HAL_UART_MODULE_ENABLED) && !defined(HAL_UART_MODULE_ONLY)
+        uart_debug_write((uint8_t *)ptr, (uint32_t)len);
+#endif
+        break;
+      case STDIN_FILENO:
+        break;
+      default:
+        ((class Print *)file)->write((uint8_t *)ptr, len);
+        break;
+    }
+    return len;
+  }
+}
+#endif
+
+int Print::printf(const char *format, ...)
+{
+  va_list ap;
+  va_start(ap, format);
+  int retval = vdprintf((int)this, format, ap);
+  va_end(ap);
+  return retval;
+}
+
+int Print::printf(const __FlashStringHelper *format, ...)
+{
+  va_list ap;
+  va_start(ap, format);
+  int retval = vdprintf((int)this, (const char *)format, ap);
+  va_end(ap);
+  return retval;
+}
+
+int Print::vprintf(const char *format, va_list ap)
+{
+  return vdprintf((int)this, format, ap);
+}
+
+int Print::vprintf(const __FlashStringHelper *format, va_list ap)
+{
+  return vdprintf((int)this, (const char *)format, ap);
 }
 
 // Private Methods /////////////////////////////////////////////////////////////
