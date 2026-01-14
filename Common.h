@@ -36,11 +36,14 @@ typedef enum {
 } PinStatus;
 
 typedef enum {
-  INPUT            = 0x0,
-  OUTPUT           = 0x1,
-  INPUT_PULLUP     = 0x2,
-  INPUT_PULLDOWN   = 0x3,
-  OUTPUT_OPENDRAIN = 0x4,
+  INPUT             = 0x0,
+  OUTPUT            = 0x1,
+  INPUT_PULLUP      = 0x2,
+  INPUT_FLOATING    = INPUT,
+  INPUT_PULLDOWN    = 0x3,
+  OUTPUT_OPENDRAIN  = 0x4,
+  OUTPUT_OPEN_DRAIN = OUTPUT_OPENDRAIN,
+  INPUT_ANALOG      = 0x5,
 } PinMode;
 
 typedef enum {
@@ -93,12 +96,12 @@ typedef void (*voidFuncPtrParam)(void*);
 #endif
 
 /* TODO: request for removal */
-typedef bool      boolean;
+typedef bool boolean __attribute__((deprecated));
 typedef uint8_t   byte;
 typedef uint16_t  word;
 
 void init(void);
-void initVariant(void);
+void initVariant(void) __attribute__((weak));
 
 #ifndef HOST
 int atexit(void (*func)()) __attribute__((weak));
@@ -175,8 +178,8 @@ uint16_t makeWord(byte h, byte l);
 
 #define word(...) makeWord(__VA_ARGS__)
 
-unsigned long pulseIn(uint8_t pin, uint8_t state, unsigned long timeout = 1000000L);
-unsigned long pulseInLong(uint8_t pin, uint8_t state, unsigned long timeout = 1000000L);
+unsigned long pulseIn(pin_size_t pin, uint8_t state, unsigned long timeout = 1000000L);
+unsigned long pulseInLong(pin_size_t pin, uint8_t state, unsigned long timeout = 1000000L);
 
 void tone(uint8_t _pin, unsigned int frequency, unsigned long duration = 0);
 void noTone(uint8_t _pin);
