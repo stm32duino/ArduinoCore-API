@@ -24,6 +24,14 @@
 
 #include "Print.h"
 
+#ifdef ARDUINO_ARCH_STM32
+#include <unistd.h>
+#include "uart.h"
+#if defined (VIRTIO_LOG)
+  #include "virtio_log.h"
+#endif
+#endif
+
 using namespace arduino;
 
 // Public Methods //////////////////////////////////////////////////////////////
@@ -247,6 +255,32 @@ size_t Print::println(const Printable& x)
   n += println();
   return n;
 }
+
+#ifdef ARDUINO_ARCH_STM32
+extern "C" {
+  __attribute__((weak))
+  int _write(int file, char *ptr, int len)
+  {
+    switch (file) {
+      case STDOUT_FILENO:
+      case STDERR_FILENO:
+        /* Used for core_debug() */
+#if defined (VIRTIO_LOG)
+        virtio_log((uint8_t *)ptr, (uint32_t)len);
+#elif defined(HAL_UART_MODULE_ENABLED) && !defined(HAL_UART_MODULE_ONLY)
+        uart_debug_write((uint8_t *)ptr, (uint32_t)len);
+#endif
+        break;
+      case STDIN_FILENO:
+        break;
+      default:
+        ((class Print *)file)->write((uint8_t *)ptr, len);
+        break;
+    }
+    return len;
+  }
+}
+#endif
 
 int Print::printf(const char *format, ...)
 {
